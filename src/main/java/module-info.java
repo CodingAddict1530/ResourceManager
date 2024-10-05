@@ -1,3 +1,4 @@
-module com.idk.resourcemanahger {
+module com.idk.resourcemanager {
+    requires org.aspectj.runtime;
 
 }
