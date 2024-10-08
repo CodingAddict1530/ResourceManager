@@ -35,7 +35,7 @@ public class FileCreationAspect {
 
             field.setAccessible(true);
             try {
-                createFile((File) field.get(target), field.getAnnotation(CreateFile.class));
+                createFile((File) field.get(target), field.getAnnotation(CreateFile.class), false);
             } catch (IllegalAccessException | IllegalArgumentException e) {
                 System.err.println(e.getMessage());
             }
@@ -46,12 +46,12 @@ public class FileCreationAspect {
 
     public static CompletableFuture<Boolean> getFileCreationResult(File file) {
 
-        return fileCreationResults.get(file).gotCreated();
+        return fileCreationResults.get(file).created;
     }
 
     public static Exception getFileCreationException(File file) {
 
-        return fileCreationResults.get(file).getException();
+        return fileCreationResults.get(file).exception;
     }
 
     public static void removeFileCreationResult(File file) {
@@ -64,11 +64,11 @@ public class FileCreationAspect {
         fileCreationResults.clear();
     }
 
-    private static void createFile(File file, CreateFile annotation) {
+    public static void createFile(File file, CreateFile annotation, boolean ignoreCondition) {
 
         fileCreationResults.put(file, new FileCreationResult(null));
 
-        CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
+        fileCreationResults.get(file).created = CompletableFuture.supplyAsync(() -> {
 
             int attempts = 0;
             boolean success = false;
@@ -78,13 +78,15 @@ public class FileCreationAspect {
 
                 try {
 
-                    switch (annotation.condition()) {
-                        case DELAYED :
-                            Thread.sleep(annotation.delay());
-                            break;
+                    if (!ignoreCondition) {
+                        switch (annotation.condition()) {
+                            case DELAYED:
+                                Thread.sleep(annotation.delay());
+                                break;
 
-                        case BEFORE_METHOD :
-
+                            case BEFORE_METHOD:
+                                return false;
+                        }
                     }
 
                     if (file.exists()) {
@@ -113,14 +115,12 @@ public class FileCreationAspect {
             }
 
             if (exception != null) {
-                fileCreationResults.get(file).setException(exception);
+                fileCreationResults.get(file).exception = exception;
             }
 
             return success;
 
         });
-
-        fileCreationResults.get(file).setCreated(future);
 
     }
 
@@ -156,26 +156,6 @@ public class FileCreationAspect {
         public FileCreationResult(final CompletableFuture<Boolean> created) {
 
             this.created = created;
-        }
-
-        public CompletableFuture<Boolean> gotCreated() {
-
-            return this.created;
-        }
-
-        public Exception getException() {
-
-            return this.exception;
-        }
-
-        public void setCreated(final CompletableFuture<Boolean> created) {
-
-            this.created = created;
-        }
-
-        public void setException(final Exception exception) {
-
-            this.exception = exception;
         }
 
     }
