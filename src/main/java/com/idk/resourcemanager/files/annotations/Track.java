@@ -9,6 +9,6 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 public @interface Track {
 
-    int times();
+    int times() default 1;
 
 }

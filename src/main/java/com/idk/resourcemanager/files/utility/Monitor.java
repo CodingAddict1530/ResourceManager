@@ -16,32 +16,58 @@ import java.util.ArrayList;
 @Aspect
 public class Monitor {
 
-    private static ArrayList<TrackedMethod> trackedMethods;
+    private static final ArrayList<TrackedMethod> trackedMethods = new ArrayList<>();
 
-    @Pointcut("annotation(Track)")
+    @Pointcut("@annotation(com.idk.resourcemanager.files.annotations.Track)")
     public static void trackMethods() {
 
     }
 
-    @Around("trackedMethods()")
-    public static void monitor(ProceedingJoinPoint joinPoint) throws Throwable {
+    @Around("trackMethods()")
+    public static Object performAction(ProceedingJoinPoint joinPoint) throws Throwable {
+
+        Throwable throwable = null;
+        Object result = null;
 
         String methodName = joinPoint.getSignature().getName();
         for (TrackedMethod trackedMethod : trackedMethods) {
             if (trackedMethod.methodName.equals(methodName)) {
                 if (trackedMethod.annotation instanceof CreateFile annotation) {
-                    FieldSignature signature = (FieldSignature) joinPoint.getSignature();
-                    Track track = signature.getField().getAnnotation(Track.class);
-                    if (trackedMethod.times >= track.times()) {
-                        return;
+                    if (annotation.condition().equals(Condition.AFTER_METHOD)) {
+                        try {
+                            joinPoint.proceed();
+                        } catch (Throwable e) {
+                            throwable = e;
+                        }
                     }
+
+                    Track track = ((FieldSignature) joinPoint.getSignature()).getField().getAnnotation(Track.class);
                     FileCreationAspect.createFile(trackedMethod.file, annotation, true);
+
+                    if (annotation.condition().equals(Condition.BEFORE_METHOD)) {
+                        try {
+                            result = joinPoint.proceed();
+                        } catch (Throwable e) {
+                            throwable = e;
+                        }
+                    }
                     if (track.times() != -1) {
                         trackedMethod.times++;
                     }
+                    if (trackedMethod.times >= track.times() && track.times() != -1) {
+                        trackedMethods.remove(trackedMethod);
+                    }
+
+                    if (throwable != null) {
+                        throw throwable;
+                    }
+
+                    return result;
                 }
             }
         }
+
+        return joinPoint.proceed();
 
     }
 

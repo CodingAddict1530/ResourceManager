@@ -1,7 +1,7 @@
 package com.idk.resourcemanager.files.aspects;
 
 import com.idk.resourcemanager.files.annotations.CreateFile;
-import com.idk.resourcemanager.files.utility.Condition;
+import com.idk.resourcemanager.files.utility.Monitor;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.*;
 import org.aspectj.lang.reflect.FieldSignature;
@@ -9,7 +9,6 @@ import org.aspectj.lang.reflect.FieldSignature;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
@@ -21,25 +20,21 @@ public class FileCreationAspect {
 
     private static final Map<File, FileCreationResult> fileCreationResults = new HashMap<>();
 
-    @Pointcut("set(@CreateFile * *)")
+    @Pointcut("set(@com.idk.resourcemanager.files.annotations.CreateFile java.io.File * *)")
     public static void fileCreation() {}
 
-    @After("annotatedFileInitialization()")
+    @Before("fileCreation()")
     public static void handleFileCreation(final JoinPoint joinPoint) {
 
         FieldSignature signature = (FieldSignature) joinPoint.getSignature();
         Field field = signature.getField();
         Object target = joinPoint.getTarget();
 
-        if (field.isAnnotationPresent(CreateFile.class) && File.class.isAssignableFrom(field.getType())) {
-
-            field.setAccessible(true);
-            try {
-                createFile((File) field.get(target), field.getAnnotation(CreateFile.class), false);
-            } catch (IllegalAccessException | IllegalArgumentException e) {
-                System.err.println(e.getMessage());
-            }
-
+        field.setAccessible(true);
+        try {
+            createFile((File) field.get(target), field.getAnnotation(CreateFile.class), false);
+        } catch (IllegalAccessException | IllegalArgumentException e) {
+            System.err.println(e.getMessage());
         }
 
     }
@@ -84,8 +79,9 @@ public class FileCreationAspect {
                                 Thread.sleep(annotation.delay());
                                 break;
 
-                            case BEFORE_METHOD:
-                                return false;
+                            case BEFORE_METHOD, AFTER_METHOD:
+                                Monitor.track(annotation.method(), annotation, file);
+                                break;
                         }
                     }
 
