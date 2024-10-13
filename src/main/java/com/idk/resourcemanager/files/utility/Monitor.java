@@ -32,8 +32,8 @@ public class Monitor {
         String methodName = joinPoint.getSignature().getName();
         for (TrackedMethod trackedMethod : trackedMethods) {
             if (trackedMethod.methodName.equals(methodName)) {
-                if (trackedMethod.annotation instanceof CreateFile annotation) {
-                    if (annotation.condition().equals(Condition.AFTER_METHOD)) {
+                if (trackedMethod.dummy instanceof CreateFileAnnotationDummy dummy) {
+                    if (dummy.getCondition().equals(Condition.AFTER_METHOD)) {
                         try {
                             joinPoint.proceed();
                         } catch (Throwable e) {
@@ -42,9 +42,10 @@ public class Monitor {
                     }
 
                     Track track = ((FieldSignature) joinPoint.getSignature()).getField().getAnnotation(Track.class);
-                    FileCreationAspect.createFile(trackedMethod.file, annotation, true);
+                    dummy.setCondition(Condition.IMMEDIATELY);
+                    FileCreationAspect.createFile(trackedMethod.file, dummy);
 
-                    if (annotation.condition().equals(Condition.BEFORE_METHOD)) {
+                    if (dummy.getCondition().equals(Condition.BEFORE_METHOD)) {
                         try {
                             result = joinPoint.proceed();
                         } catch (Throwable e) {
@@ -71,22 +72,22 @@ public class Monitor {
 
     }
 
-    public static void track(String methodName, Annotation annotation, File file) {
+    public static void track(String methodName, CreateFileAnnotationDummy dummy, File file) {
 
-        trackedMethods.add(new TrackedMethod(methodName, annotation, file));
+        trackedMethods.add(new TrackedMethod(methodName, dummy, file));
     }
 
     private static class TrackedMethod {
 
         private final String methodName;
-        private final Annotation annotation;
+        private final CreateFileAnnotationDummy dummy;
         private final File file;
         private int times;
 
-        public TrackedMethod(String methodName, Annotation annotation, File file) {
+        public TrackedMethod(String methodName, CreateFileAnnotationDummy dummy, File file) {
 
             this.methodName = methodName;
-            this.annotation = annotation;
+            this.dummy = dummy;
             this.file = file;
             this.times = 0;
 

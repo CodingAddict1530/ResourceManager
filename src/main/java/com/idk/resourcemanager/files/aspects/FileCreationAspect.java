@@ -1,6 +1,8 @@
 package com.idk.resourcemanager.files.aspects;
 
 import com.idk.resourcemanager.files.annotations.CreateFile;
+import com.idk.resourcemanager.files.utility.Condition;
+import com.idk.resourcemanager.files.utility.CreateFileAnnotationDummy;
 import com.idk.resourcemanager.files.utility.Monitor;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.*;
@@ -32,7 +34,7 @@ public class FileCreationAspect {
 
         field.setAccessible(true);
         try {
-            createFile((File) field.get(target), field.getAnnotation(CreateFile.class), false);
+            createFile((File) field.get(target), field.getAnnotation(CreateFile.class));
         } catch (IllegalAccessException | IllegalArgumentException e) {
             System.err.println(e.getMessage());
         }
@@ -59,7 +61,7 @@ public class FileCreationAspect {
         fileCreationResults.clear();
     }
 
-    public static void createFile(File file, CreateFile annotation, boolean ignoreCondition) {
+    public static void createFile(File file, CreateFileAnnotationDummy dummy) {
 
         fileCreationResults.put(file, new FileCreationResult(null));
 
@@ -69,24 +71,22 @@ public class FileCreationAspect {
             boolean success = false;
             Exception exception = null;
 
-            while (attempts < annotation.retryAttempts() && !success) {
+            while (attempts < dummy.getRetryAttempts() && !success) {
 
                 try {
 
-                    if (!ignoreCondition) {
-                        switch (annotation.condition()) {
-                            case DELAYED:
-                                Thread.sleep(annotation.delay());
-                                break;
+                    switch (dummy.getCondition()) {
+                        case DELAYED:
+                            Thread.sleep(dummy.getDelay());
+                            break;
 
-                            case BEFORE_METHOD, AFTER_METHOD:
-                                Monitor.track(annotation.method(), annotation, file);
-                                break;
-                        }
+                        case BEFORE_METHOD, AFTER_METHOD:
+                            Monitor.track(dummy.getMethod(), dummy, file);
+                            break;
                     }
 
                     if (file.exists()) {
-                        if (!annotation.overwrite()) {
+                        if (!dummy.shouldOverwrite()) {
                             exception = new FileAlreadyExistsException(file.getAbsolutePath());
                             return false;
                         }
@@ -102,7 +102,7 @@ public class FileCreationAspect {
                     exception = e;
                     attempts++;
                     try {
-                        Thread.sleep(annotation.retryInterval());
+                        Thread.sleep(dummy.getRetryInterval());
                     } catch (InterruptedException e1) {
                         exception = e1;
                     }
@@ -118,6 +118,18 @@ public class FileCreationAspect {
 
         });
 
+    }
+
+    public static void createFile(File file, CreateFile annotation) {
+
+        createFile(file, new CreateFileAnnotationDummy(
+                annotation.condition(),
+                annotation.method(),
+                annotation.delay(),
+                annotation.overwrite(),
+                annotation.retryAttempts(),
+                annotation.retryInterval()
+        ));
     }
 
     private static void recursiveDelete(File dir) throws IOException {
