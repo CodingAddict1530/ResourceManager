@@ -1,7 +1,7 @@
 package com.idk.resourcemanager.files.aspects;
 
 import com.idk.resourcemanager.files.annotations.CreateFile;
-import com.idk.resourcemanager.files.utility.Condition;
+import com.idk.resourcemanager.files.utility.ACArgs;
 import com.idk.resourcemanager.files.utility.CreateFileAnnotationDummy;
 import com.idk.resourcemanager.files.utility.Monitor;
 import org.aspectj.lang.JoinPoint;
@@ -34,7 +34,16 @@ public class FileCreationAspect {
 
         field.setAccessible(true);
         try {
-            createFile((File) field.get(target), field.getAnnotation(CreateFile.class));
+            createFile((File) field.get(target), new CreateFileAnnotationDummy(
+                    new ACArgs(
+                            field.getAnnotation(CreateFile.class).condition(),
+                            field.getAnnotation(CreateFile.class).method(),
+                            field.getAnnotation(CreateFile.class).delay(),
+                            field.getAnnotation(CreateFile.class).overwrite(),
+                            field.getAnnotation(CreateFile.class).retryAttempts(),
+                            field.getAnnotation(CreateFile.class).retryInterval()
+                    )
+            ));
         } catch (IllegalAccessException | IllegalArgumentException e) {
             System.err.println(e.getMessage());
         }
@@ -118,18 +127,6 @@ public class FileCreationAspect {
 
         });
 
-    }
-
-    public static void createFile(File file, CreateFile annotation) {
-
-        createFile(file, new CreateFileAnnotationDummy(
-                annotation.condition(),
-                annotation.method(),
-                annotation.delay(),
-                annotation.overwrite(),
-                annotation.retryAttempts(),
-                annotation.retryInterval()
-        ));
     }
 
     private static void recursiveDelete(File dir) throws IOException {

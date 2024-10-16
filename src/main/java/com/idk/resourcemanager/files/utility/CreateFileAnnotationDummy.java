@@ -9,25 +9,14 @@ public class CreateFileAnnotationDummy {
     private final int retryAttempts;
     private final long retryInterval;
 
-    public CreateFileAnnotationDummy() {
+    public CreateFileAnnotationDummy(ACArgs args) {
 
-        this.condition = Condition.IMMEDIATELY;
-        this.method = "";
-        this.delay = 0;
-        this.overwrite = true;
-        this.retryAttempts = 3;
-        this.retryInterval = 100;
-
-    }
-
-    public CreateFileAnnotationDummy(Condition condition, String method, long delay, boolean overwrite, int retryAttempts, long retryInterval) {
-
-        this.condition = condition;
-        this.method = method;
-        this.delay = delay;
-        this.overwrite = overwrite;
-        this.retryAttempts = retryAttempts;
-        this.retryInterval = retryInterval;
+        this.condition = args.getCondition();
+        this.method = args.getMethod();
+        this.delay = args.getDelay();
+        this.overwrite = args.isOverwrite();
+        this.retryAttempts = args.getRetryAttempts();
+        this.retryInterval = args.getRetryInterval();
 
     }
 
@@ -61,7 +50,7 @@ public class CreateFileAnnotationDummy {
         return this.retryInterval;
     }
 
-    public void setCondition(Condition condition) {
+    public void setCondition(Condition condition, Monitor.AccessKey key) {
 
         this.condition = condition;
     }

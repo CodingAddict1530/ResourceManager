@@ -1,6 +1,5 @@
 package com.idk.resourcemanager.files.utility;
 
-import com.idk.resourcemanager.files.annotations.CreateFile;
 import com.idk.resourcemanager.files.annotations.Track;
 import com.idk.resourcemanager.files.aspects.FileCreationAspect;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -10,7 +9,6 @@ import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.FieldSignature;
 
 import java.io.File;
-import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 
 @Aspect
@@ -19,9 +17,7 @@ public class Monitor {
     private static final ArrayList<TrackedMethod> trackedMethods = new ArrayList<>();
 
     @Pointcut("@annotation(com.idk.resourcemanager.files.annotations.Track)")
-    public static void trackMethods() {
-
-    }
+    public static void trackMethods() {}
 
     @Around("trackMethods()")
     public static Object performAction(ProceedingJoinPoint joinPoint) throws Throwable {
@@ -29,7 +25,7 @@ public class Monitor {
         Throwable throwable = null;
         Object result = null;
 
-        String methodName = joinPoint.getSignature().getName();
+        String methodName = joinPoint.getSignature().getDeclaringTypeName() + "." + joinPoint.getSignature().getName();
         for (TrackedMethod trackedMethod : trackedMethods) {
             if (trackedMethod.methodName.equals(methodName)) {
                 if (trackedMethod.dummy instanceof CreateFileAnnotationDummy dummy) {
@@ -42,7 +38,7 @@ public class Monitor {
                     }
 
                     Track track = ((FieldSignature) joinPoint.getSignature()).getField().getAnnotation(Track.class);
-                    dummy.setCondition(Condition.IMMEDIATELY);
+                    dummy.setCondition(Condition.IMMEDIATELY, new AccessKey());
                     FileCreationAspect.createFile(trackedMethod.file, dummy);
 
                     if (dummy.getCondition().equals(Condition.BEFORE_METHOD)) {
@@ -92,6 +88,12 @@ public class Monitor {
             this.times = 0;
 
         }
+
+    }
+
+    public static class AccessKey {
+
+        private AccessKey() {}
 
     }
 
