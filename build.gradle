@@ -13,6 +13,8 @@ dependencies {
 
     implementation group: 'org.aspectj', name: 'aspectjweaver', version: '1.9.22.1'
     implementation group: 'io.github.classgraph', name: 'classgraph', version: '4.8.177'
+    implementation group: 'net.bytebuddy', name: 'byte-buddy', version: '1.15.5'
+    implementation group: 'net.bytebuddy', name: 'byte-buddy-agent', version: '1.15.5'
 
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
