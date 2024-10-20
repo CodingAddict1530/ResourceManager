@@ -13,6 +13,7 @@ public @interface CreateFile {
 
     Condition condition() default Condition.IMMEDIATELY;
     String method() default "";
+    Class<?>[] parameterTypes() default {};
     long delay() default 0;
     boolean overwrite() default true;
     int retryAttempts() default 3;

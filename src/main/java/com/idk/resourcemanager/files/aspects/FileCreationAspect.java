@@ -41,7 +41,8 @@ public class FileCreationAspect {
                             field.getAnnotation(CreateFile.class).delay(),
                             field.getAnnotation(CreateFile.class).overwrite(),
                             field.getAnnotation(CreateFile.class).retryAttempts(),
-                            field.getAnnotation(CreateFile.class).retryInterval()
+                            field.getAnnotation(CreateFile.class).retryInterval(),
+                            field.getAnnotation(CreateFile.class).parameterTypes()
                     )
             ));
         } catch (IllegalAccessException | IllegalArgumentException e) {

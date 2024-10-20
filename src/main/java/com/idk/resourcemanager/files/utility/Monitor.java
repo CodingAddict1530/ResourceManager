@@ -2,6 +2,10 @@ package com.idk.resourcemanager.files.utility;
 
 import com.idk.resourcemanager.files.annotations.Track;
 import com.idk.resourcemanager.files.aspects.FileCreationAspect;
+import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.agent.ByteBuddyAgent;
+import net.bytebuddy.implementation.MethodDelegation;
+import net.bytebuddy.matcher.ElementMatchers;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -9,10 +13,16 @@ import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.FieldSignature;
 
 import java.io.File;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 
 @Aspect
 public class Monitor {
+
+    static {
+        ByteBuddyAgent.install();
+    }
 
     private static final ArrayList<TrackedMethod> trackedMethods = new ArrayList<>();
 
@@ -48,12 +58,6 @@ public class Monitor {
                             throwable = e;
                         }
                     }
-                    if (track.times() != -1) {
-                        trackedMethod.times++;
-                    }
-                    if (trackedMethod.times >= track.times() && track.times() != -1) {
-                        trackedMethods.remove(trackedMethod);
-                    }
 
                     if (throwable != null) {
                         throw throwable;
@@ -71,6 +75,42 @@ public class Monitor {
     public static void track(String methodName, CreateFileAnnotationDummy dummy, File file) {
 
         trackedMethods.add(new TrackedMethod(methodName, dummy, file));
+        redefine(methodName, dummy.getParameterTypes());
+    }
+
+    private static boolean redefine(String m, Class<?>[] parameterTypes) {
+
+        try {
+
+            int lastDot = m.lastIndexOf('.');
+            String className = m.substring(0, lastDot);
+            String methodName = m.substring(lastDot + 1);
+
+            Class<?> clazz = Class.forName(className);
+            Method method = clazz.getDeclaredMethod(methodName, parameterTypes);
+
+            new ByteBuddy()
+                    .redefine(clazz)
+                    .method(ElementMatchers.named(methodName))
+                    .intercept(MethodDelegation.to(method))
+                    .annotateMethod(new Track() {
+
+                        @Override
+                        public Class<? extends Annotation> annotationType() {
+                            return Track.class;
+                        }
+
+                    })
+                    .make()
+                    .load(clazz.getClassLoader());
+
+            return true;
+
+        } catch (NoSuchMethodException | ClassNotFoundException e) {
+            e.printStackTrace();
+            return false;
+        }
+
     }
 
     private static class TrackedMethod {
@@ -78,14 +118,12 @@ public class Monitor {
         private final String methodName;
         private final CreateFileAnnotationDummy dummy;
         private final File file;
-        private int times;
 
         public TrackedMethod(String methodName, CreateFileAnnotationDummy dummy, File file) {
 
             this.methodName = methodName;
             this.dummy = dummy;
             this.file = file;
-            this.times = 0;
 
         }
 

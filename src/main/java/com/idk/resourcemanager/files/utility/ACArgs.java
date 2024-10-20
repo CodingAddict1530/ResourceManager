@@ -4,12 +4,13 @@ public class ACArgs {
 
     private Condition condition;
     private String method;
+    private Class<?>[] parameterTypes;
     private long delay;
     private boolean overwrite;
     private int retryAttempts;
     private long retryInterval;
 
-    public ACArgs(Condition condition, String method, long delay, boolean overwrite, int retryAttempts, long retryInterval) {
+    public ACArgs(Condition condition, String method, long delay, boolean overwrite, int retryAttempts, long retryInterval, Class<?>... parameterTypes) {
 
         this.condition = condition;
         this.method = method;
@@ -17,6 +18,7 @@ public class ACArgs {
         this.overwrite = overwrite;
         this.retryAttempts = retryAttempts;
         this.retryInterval = retryInterval;
+        this.parameterTypes = parameterTypes;
 
     }
 
@@ -34,6 +36,12 @@ public class ACArgs {
     public ACArgs setMethod(String method) {
 
         this.method = method;
+        return this;
+    }
+
+    public ACArgs setParameters(Class<?>... parameterTypes) {
+
+        this.parameterTypes = parameterTypes;
         return this;
     }
 
@@ -69,6 +77,11 @@ public class ACArgs {
     public String getMethod() {
 
         return this.method;
+    }
+
+    public Class<?>[] getParameterTypes() {
+
+        return this.parameterTypes;
     }
 
     public long getDelay() {

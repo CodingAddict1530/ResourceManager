@@ -4,6 +4,7 @@ public class CreateFileAnnotationDummy {
 
     private Condition condition;
     private final String method;
+    private final Class<?>[] parameterTypes;
     private final long delay;
     private final boolean overwrite;
     private final int retryAttempts;
@@ -13,6 +14,7 @@ public class CreateFileAnnotationDummy {
 
         this.condition = args.getCondition();
         this.method = args.getMethod();
+        this.parameterTypes = args.getParameterTypes();
         this.delay = args.getDelay();
         this.overwrite = args.isOverwrite();
         this.retryAttempts = args.getRetryAttempts();
@@ -28,6 +30,11 @@ public class CreateFileAnnotationDummy {
     public String getMethod() {
 
         return this.method;
+    }
+
+    public Class<?>[] getParameterTypes() {
+
+        return this.parameterTypes;
     }
 
     public long getDelay() {
