@@ -29,7 +29,7 @@ public class CodeInspector {
     public static void inspect() {
 
         try (ScanResult scanResult = new ClassGraph().enableAllInfo()
-                .rejectPackages(Application.getExcludedPackages().toArray(new String[0]))
+                .acceptPackages(Application.getIncludedPackages().toArray(new String[0]))
                 .scan()) {
             scanResult.getAllClasses().forEach(classInfo -> {
 

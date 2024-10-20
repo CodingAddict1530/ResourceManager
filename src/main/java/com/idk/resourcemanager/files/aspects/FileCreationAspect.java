@@ -92,7 +92,7 @@ public class FileCreationAspect {
 
                         case BEFORE_METHOD, AFTER_METHOD:
                             Monitor.track(dummy.getMethod(), dummy, file);
-                            break;
+                            return false;
                     }
 
                     if (file.exists()) {

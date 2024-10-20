@@ -7,33 +7,42 @@ import java.util.List;
 
 public abstract class Application {
 
-    private static final ArrayList<String> excludedPackages = new ArrayList<String>();
-    static {
-        excludedPackages.addAll(List.of("java.*", "javax.*", "jdk.*", "sun.*", "com.sun.*"));
-    }
+    private static final ArrayList<String> includedPackages = new ArrayList<String>();
 
-    public final void launch() {
+    public static void launch(Application application) {
+
+        String[] parts = application.getClass().getPackage().getName().split("\\.");
+
+        if (parts.length > 1) {
+            includedPackages.add(parts[0] + "." + parts[1]);
+        } else {
+            if (!application.getClass().getPackage().getName().isEmpty()) {
+                includedPackages.add(application.getClass().getPackage().getName());
+            } else {
+                throw new RuntimeException("Application class must have a package name.");
+            }
+        }
 
         CodeInspector.inspect();
-        run();
+        application.run();
 
     }
 
     public abstract void run();
 
-    public static ArrayList<String> getExcludedPackages() {
+    public static ArrayList<String> getIncludedPackages() {
 
-        return excludedPackages;
+        return includedPackages;
     }
 
-    public static void addExcludedPackage(String p) {
+    public static void addIncludedPackage(String p) {
 
-        excludedPackages.add(p);
+        includedPackages.add(p);
     }
 
-    public static void removeExcludedPackage(String p) {
+    public static void removeIncludedPackage(String p) {
 
-        excludedPackages.remove(p);
+        includedPackages.remove(p);
     }
 
 }

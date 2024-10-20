@@ -4,7 +4,8 @@ import com.idk.resourcemanager.files.annotations.Track;
 import com.idk.resourcemanager.files.aspects.FileCreationAspect;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.ByteBuddyAgent;
-import net.bytebuddy.implementation.MethodDelegation;
+import net.bytebuddy.asm.MemberAttributeExtension;
+import net.bytebuddy.dynamic.loading.ClassReloadingStrategy;
 import net.bytebuddy.matcher.ElementMatchers;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -75,7 +76,7 @@ public class Monitor {
     public static void track(String methodName, CreateFileAnnotationDummy dummy, File file) {
 
         trackedMethods.add(new TrackedMethod(methodName, dummy, file));
-        redefine(methodName, dummy.getParameterTypes());
+        System.out.println(redefine(methodName, dummy.getParameterTypes()));
     }
 
     private static boolean redefine(String m, Class<?>[] parameterTypes) {
@@ -91,18 +92,17 @@ public class Monitor {
 
             new ByteBuddy()
                     .redefine(clazz)
-                    .method(ElementMatchers.named(methodName))
-                    .intercept(MethodDelegation.to(method))
-                    .annotateMethod(new Track() {
+                    .visit(new MemberAttributeExtension.ForMethod()
+                            .annotateMethod(new Track() {
 
-                        @Override
-                        public Class<? extends Annotation> annotationType() {
-                            return Track.class;
-                        }
+                                @Override
+                                public Class<? extends Annotation> annotationType() {
+                                    return Track.class;
+                                }
 
-                    })
-                    .make()
-                    .load(clazz.getClassLoader());
+                            }).on(ElementMatchers.is(method))
+                    ).make()
+                    .load(clazz.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
 
             return true;
 
