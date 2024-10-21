@@ -22,11 +22,11 @@ public class FileCreationAspect {
 
     private static final Map<File, FileCreationResult> fileCreationResults = new HashMap<>();
 
-    @Pointcut("set(@com.idk.resourcemanager.files.annotations.CreateFile java.io.File * *)")
+    @Pointcut("set(@com.idk.resourcemanager.files.annotations.CreateFile * *)")
     public static void fileCreation() {}
 
-    @Before("fileCreation()")
-    public static void handleFileCreation(final JoinPoint joinPoint) {
+    @After("fileCreation()")
+    public void handleFileCreation(final JoinPoint joinPoint) {
 
         FieldSignature signature = (FieldSignature) joinPoint.getSignature();
         Field field = signature.getField();
@@ -73,6 +73,7 @@ public class FileCreationAspect {
 
     public static void createFile(File file, CreateFileAnnotationDummy dummy) {
 
+        System.out.println(fileCreationResults.get(file));
         fileCreationResults.put(file, new FileCreationResult(null));
 
         fileCreationResults.get(file).created = CompletableFuture.supplyAsync(() -> {

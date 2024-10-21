@@ -7,11 +7,11 @@ import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.asm.MemberAttributeExtension;
 import net.bytebuddy.dynamic.loading.ClassReloadingStrategy;
 import net.bytebuddy.matcher.ElementMatchers;
+import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.annotation.Around;
-import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.annotation.Pointcut;
+import org.aspectj.lang.annotation.*;
 import org.aspectj.lang.reflect.FieldSignature;
+import org.aspectj.lang.reflect.MethodSignature;
 
 import java.io.File;
 import java.lang.annotation.Annotation;
@@ -27,56 +27,44 @@ public class Monitor {
 
     private static final ArrayList<TrackedMethod> trackedMethods = new ArrayList<>();
 
-    @Pointcut("@annotation(com.idk.resourcemanager.files.annotations.Track)")
+    @Pointcut("@annotation(com.idk.resourcemanager.files.annotations.Track) && execution(* *(..))")
     public static void trackMethods() {}
 
-    @Around("trackMethods()")
-    public static Object performAction(ProceedingJoinPoint joinPoint) throws Throwable {
+    @Before("trackMethods()")
+    public void performActionBefore(JoinPoint joinPoint) {
 
-        Throwable throwable = null;
-        Object result = null;
+        performAction(joinPoint, true);
+    }
 
-        String methodName = joinPoint.getSignature().getDeclaringTypeName() + "." + joinPoint.getSignature().getName();
-        for (TrackedMethod trackedMethod : trackedMethods) {
-            if (trackedMethod.methodName.equals(methodName)) {
-                if (trackedMethod.dummy instanceof CreateFileAnnotationDummy dummy) {
-                    if (dummy.getCondition().equals(Condition.AFTER_METHOD)) {
-                        try {
-                            joinPoint.proceed();
-                        } catch (Throwable e) {
-                            throwable = e;
-                        }
-                    }
+    @After("trackMethods()")
+    public void performActionAfter(JoinPoint joinPoint) {
 
-                    Track track = ((FieldSignature) joinPoint.getSignature()).getField().getAnnotation(Track.class);
-                    dummy.setCondition(Condition.IMMEDIATELY, new AccessKey());
-                    FileCreationAspect.createFile(trackedMethod.file, dummy);
-
-                    if (dummy.getCondition().equals(Condition.BEFORE_METHOD)) {
-                        try {
-                            result = joinPoint.proceed();
-                        } catch (Throwable e) {
-                            throwable = e;
-                        }
-                    }
-
-                    if (throwable != null) {
-                        throw throwable;
-                    }
-
-                    return result;
-                }
-            }
-        }
-
-        return joinPoint.proceed();
-
+        performAction(joinPoint, false);
     }
 
     public static void track(String methodName, CreateFileAnnotationDummy dummy, File file) {
 
         trackedMethods.add(new TrackedMethod(methodName, dummy, file));
-        System.out.println(redefine(methodName, dummy.getParameterTypes()));
+        //redefine(methodName, dummy.getParameterTypes());
+
+    }
+
+    private static void performAction(JoinPoint joinPoint, boolean before) {
+
+        String methodName = joinPoint.getSignature().getDeclaringTypeName() + "." + joinPoint.getSignature().getName();
+        for (TrackedMethod trackedMethod : trackedMethods) {
+            if (trackedMethod.methodName.equals(methodName)) {
+                if (trackedMethod.dummy instanceof CreateFileAnnotationDummy dummy) {
+                    if (dummy.getCondition().equals(Condition.AFTER_METHOD) && before ||
+                            dummy.getCondition().equals(Condition.BEFORE_METHOD) && !before) {
+                        return;
+                    }
+                    dummy.setCondition(Condition.IMMEDIATELY, new AccessKey());
+                    FileCreationAspect.createFile(trackedMethod.file, dummy);
+                }
+            }
+        }
+
     }
 
     private static boolean redefine(String m, Class<?>[] parameterTypes) {
