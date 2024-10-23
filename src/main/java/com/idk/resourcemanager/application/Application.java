@@ -3,7 +3,6 @@ package com.idk.resourcemanager.application;
 import com.idk.resourcemanager.inspection.CodeInspector;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public abstract class Application {
 
